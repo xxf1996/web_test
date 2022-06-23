@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">outter app</div>
+  <div id="sandbox-container">
+    <div id="app">inner app</div>
+  </div>
+  <script>
+    const sandboxContainer = document.getElementById('sandbox-container')
+    const d = new Document()
+    d.appendChild(sandboxContainer)
+    const fakeWindow = {
+      document: d
+    }
+    new Proxy(fakeWindow, {
+      get(target, prop) {
+        if (prop === 'window') {
+          return target
+        }
+        return target[prop] || window[prop]
+      },
+      set(target, prop, val) {
+        target[prop] = val
+      }
+    })
+    with(fakeWindow) { // 沙箱内如何隔离document？
+      console.log(document) // 好一个指鹿为马
+      console.log(window.aaa)
+      window.aaa = 123
+      console.log(window.aaa)
+      console.log(document.getElementById('app'))
+    }
+  </script>
+</body>
+</html>
