@@ -86,7 +86,7 @@
 
 这种方法**固然暴力**，但是可用。
 
-##### 一个相关的——:scope伪类
+#### 一个相关的——:scope伪类
 
 - [:scope - CSS（层叠样式表） | MDN](https://developer.mozilla.org/zh-CN/docs/Web/CSS/:scope)
 
