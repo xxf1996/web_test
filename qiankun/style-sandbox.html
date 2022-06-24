@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>style sandbox</title>
+</head>
+<body>
+  <div class="some">
+    <p>1111</p>
+  </div>
+  <div class="container">
+    <custom-head>
+      <!-- 正常情况下，无论在何处定义的style，其作用跟在head定义的一样，并不会根据其定义位置而只对某个区域作用 -->
+      <style>
+        .some {
+          background-color: darkcyan;
+        }
+      </style>
+    </custom-head>
+    <div class="some">
+      <p>1111</p>
+    </div>
+  </div>
+  <div class="scoped">
+    <!-- 曾经style有个scoped的属性，可以使得带scoped属性的style只作用于其父级元素下的子级元素 -->
+    <style scoped>
+      .some {
+        background-color: coral;
+      }
+    </style>
+    <!-- 也就是说，这种语法可以使得上面的style只对下面的元素作用；但是不知为何这个属性被废弃了……（https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/style#attr-scoped） -->
+    <div class="some">
+      <p>1111</p>
+    </div>
+  </div>
+</body>
+</html>

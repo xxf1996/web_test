@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>style scoped</title>
+  <script type="module" src="./dep/scoped-polyfill/polyfill.js"></script>
+  <style>
+    .some:not(.scoped *, .app1 *) {
+      background-color: blue;
+    }
+    p:not(.scoped *, .app1 *) {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="some">
+    <p>1111</p>
+  </div>
+  <div class="scoped">
+    <!-- 好在社区有人对style scoped做了polyfill（https://github.com/samthor/scoped） -->
+    <style scoped>
+      .some {
+        background-color: coral;
+      }
+    </style>
+    <p>加个polyfill就行了</p>
+    <div class="some">
+      <p>1111</p>
+    </div>
+  </div>
+  <div class="app1">
+    <style scoped>
+      .some {
+        background-color: darkseagreen;
+      }
+    </style>
+    <p>app1</p>
+    <div class="some">
+      <p>1111</p>
+    </div>
+  </div>
+</body>
+</html>
