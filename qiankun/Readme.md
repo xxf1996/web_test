@@ -13,11 +13,50 @@
 - with的应用
 - qiankun-head到底是不自定义元素？
 
-### script沙箱执行
+### `script`沙箱执行
 
-- 在沙箱内如何模拟document等特别的DOM？
-  - 新建Document对象貌似不可取
-  - -
+总体上就是对主应用的`window`进行一个代理（`proxy`沙箱模式[^12]），然后把代理的对象作为微应用作用域`global`对象。
+
+#### `with`的作用
+
+在对`window`完成代理后，可以用`with`将代理对象挂载到当前作用域链[^13][^14]，然后再执行子应用的脚本，这样就可以有效避免不同应用之间对其他应用`window`对象的污染；
+
+![image-20220629165041906](http://pic.xiexuefeng.cc/markdown/image-20220629165041906.png?imageslim)
+
+当然，从上面源码也不难看出，也可以直接覆盖当前作用域内的`window`变量，以达到对`window`的劫持；
+
+#### (0, eval)(...)
+
+在源码中发现一个奇怪的写法[^15]：
+
+![image-20220629165505216](http://pic.xiexuefeng.cc/markdown/image-20220629165505216.png?imageslim)
+
+一查，才发现这也是有点历史的写法了——[(1, eval)('this') vs eval('this') in JavaScript? - Stack Overflow](https://stackoverflow.com/questions/9107240/1-evalthis-vs-evalthis-in-javascript/9107367#9107367)；简言之括号中用逗号分隔的语句，其实<font color=#f00>会返回最后一个语句的值</font>。
+
+#### 特殊元素的代理
+
+- `style/link`：可以理解为内联样式和外链样式，这个按照样式的逻辑进行；
+- `script`：分为内联脚本和外链脚本，外链脚本则是利用`fetch`进行源码请求进而变成一个内联的脚本，然后进行沙箱模式的执行（依靠`import-html-entry`包的`execScripts`函数[^8]）；
+
+- `document/body`：目前只是看到基于对`document`的节点创建/移除相关操作[^5][^6][^7]进行一个劫持操作，但是像`query`这类操作并没发现进行劫持，按理说`query`也要严格限制在各自的子应用容器内才比较好，不然就会造成查询外溢（比如在子应用内通过`document.getElementById`查询一个元素，但是外层应用存在同名`id`时）？
+
+
+
+#### window的代理
+
+- 首先从顶层`window`复制**不可配置**的属性到**代理**`window`对象上[^9]；
+
+  <img src="http://pic.xiexuefeng.cc/markdown/image-20220629154657228.png?imageslim" alt="image-20220629154657228" style="zoom:50%;" />
+
+- 对于一些需要在顶层作用域执行的函数属性，直接返回顶层对象原属性[^10]；
+
+  <img src="http://pic.xiexuefeng.cc/markdown/image-20220629154509703.png?imageslim" alt="image-20220629154509703" style="zoom:50%;" />
+
+- 至于`set`的代理就很简单了[^11]，也很清晰：
+
+  <img src="http://pic.xiexuefeng.cc/markdown/image-20220629155902357.png?imageslim" alt="image-20220629155902357" style="zoom:50%;" />
+
+
 
 ### 样式隔离
 
@@ -86,7 +125,7 @@
 
 这种方法**固然暴力**，但是可用。
 
-#### 一个相关的——:scope伪类
+#### 一个相关的——`:scope`伪类
 
 - [:scope - CSS（层叠样式表） | MDN](https://developer.mozilla.org/zh-CN/docs/Web/CSS/:scope)
 
@@ -96,3 +135,14 @@
 [^2]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/patchers/dynamicAppend/common.ts#L110
 [^3]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/patchers/dynamicAppend/common.ts#L136
 [^4]: https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/style#attr-scoped
+[^5]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/patchers/dynamicAppend/common.ts#L166
+[^6]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/patchers/dynamicAppend/common.ts#L301
+[^7]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/patchers/dynamicAppend/forStrictSandbox.ts#L37
+[^8]: https://github.com/kuitos/import-html-entry/blob/09cc30adb60317556ac35b2d58e08a8398d75007/src/index.js#L151
+[^9]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/proxySandbox.ts#L95
+[^10]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/proxySandbox.ts#L255-L290
+[^11]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/proxySandbox.ts#L212-L249
+[^12]: https://github.com/umijs/qiankun/blob/9f345509dc08ef042b24991873b17e301093b62a/src/sandbox/proxySandbox.ts#L145
+[^13]: https://github.com/kuitos/import-html-entry/blob/09cc30adb60317556ac35b2d58e08a8398d75007/src/index.js#L62
+[^14]: [with - JavaScript | MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/with#performance_pro_contra)
+[^15]: https://github.com/kuitos/import-html-entry/blob/09cc30adb60317556ac35b2d58e08a8398d75007/src/index.js#L59

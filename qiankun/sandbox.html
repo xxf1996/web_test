@@ -18,24 +18,42 @@
     const fakeWindow = {
       document: d
     }
-    new Proxy(fakeWindow, {
+    const proxy = new Proxy(fakeWindow, {
       get(target, prop) {
+        // console.log('fakeWindow', prop)
         if (prop === 'window') {
           return target
         }
-        return target[prop] || window[prop]
+        if (prop === '__name__') {
+          return 'fakeWindow'
+        }
+        if (prop === 'globalThis') {
+          return target
+        }
+        return target[prop]
       },
       set(target, prop, val) {
         target[prop] = val
+        return true
       }
     })
-    with(fakeWindow) { // 沙箱内如何隔离document？
-      console.log(document) // 好一个指鹿为马
-      console.log(window.aaa)
-      window.aaa = 123
-      console.log(window.aaa)
-      console.log(document.getElementById('app'))
+    const aaa = 'old aaa'
+    console.log(window.aaa) // 全局变量并不会挂载到window对象上
+    function sandbox(window) { // 首先直接在作用域内覆盖window变量
+      with(window) { // 然后把传进的代理对象挂载到当前作用域链上
+        console.log(document) // 好一个指鹿为马
+        console.log(globalThis)
+        console.log(window.aaa)
+        window.aaa = 123 // 但是window上的属性会挂载到全局作用域上，原因就是window对象本身被with加载到当前作用域链中了，因此其直接属性都可以作为变量声明进行匹配；
+        console.log(aaa, window.aaa)
+        console.log(document.getElementById('app'))
+        const some = (1, console.log)
+        console.log(some === console.log)
+        console.log(typeof some);
+        (1, console.log)('左值变成值引用了？')
+      }
     }
+    sandbox(proxy)
   </script>
 </body>
 </html>
